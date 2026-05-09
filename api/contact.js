@@ -1,26 +1,22 @@
 /**
- * Synapse Consulting — Local development email backend
- * --------------------------------------------------
- * For local dev only. In production on Vercel, /api/contact is handled by the
- * serverless function at api/contact.js — NOT by this file.
+ * Synapse Consulting — Vercel Serverless Function
+ * /api/contact
  *
- * Run locally:   npm run server
- * Run together:  npm run dev:full   (starts Vite frontend + this backend)
+ * Receives the website contact form, sends:
+ *   1. Notification email → CONTACT_EMAIL (with all submitted details)
+ *   2. Auto-reply         → user (thank-you confirmation)
+ *
+ * This file is what Vercel runs in production. The Express server in /server
+ * is for local development only.
+ *
+ * Configure SMTP via Vercel project Environment Variables (NOT a .env file):
+ *   SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS,
+ *   CONTACT_EMAIL, FROM_EMAIL, FROM_NAME
  */
 
-import express from "express";
-import cors from "cors";
 import nodemailer from "nodemailer";
-import dotenv from "dotenv";
 
-dotenv.config();
-
-const app = express();
-app.use(express.json({ limit: "100kb" }));
-app.use(cors());
-
-const PORT = process.env.PORT || 3001;
-
+// ---------- Config ----------
 const {
   SMTP_HOST,
   SMTP_PORT,
@@ -36,22 +32,7 @@ const TARGET_EMAIL = CONTACT_EMAIL || "contact@synapseconsulting.in";
 const SENDER_EMAIL = FROM_EMAIL || SMTP_USER || "no-reply@synapseconsulting.in";
 const SENDER_NAME = FROM_NAME || "Synapse Consulting";
 
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT ? Number(SMTP_PORT) : 587,
-  secure: SMTP_SECURE === "true",
-  auth: SMTP_USER && SMTP_PASS ? { user: SMTP_USER, pass: SMTP_PASS } : undefined,
-});
-
-transporter.verify((err) => {
-  if (err) {
-    console.warn("[mail] SMTP verify failed:", err.message);
-    console.warn("[mail] Check your .env SMTP_* settings.");
-  } else {
-    console.log("[mail] SMTP transport ready.");
-  }
-});
-
+// ---------- Utilities ----------
 const escapeHtml = (s = "") =>
   String(s)
     .replace(/&/g, "&amp;")
@@ -60,7 +41,13 @@ const escapeHtml = (s = "") =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
-const isValidEmail = (e) => typeof e === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+const isValidEmail = (e) =>
+  typeof e === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+
+// ---------- Email templates ----------
+// Templates intentionally keep wording natural and avoid spam-trigger phrases
+// ("act now", "free", excessive exclamation, all caps, etc.). They include
+// proper headers (List-Unsubscribe, Auto-Submitted) on the outbound auto-reply.
 
 const buildNotificationEmail = ({ name, company, email, industryType, challenge }) => {
   const safe = {
@@ -111,6 +98,8 @@ const buildNotificationEmail = ({ name, company, email, industryType, challenge 
 
 const buildAutoReplyEmail = ({ name }) => {
   const safeName = escapeHtml(name);
+
+  // Plain, conversational copy — avoids the patterns spam filters dislike.
   const html = `
   <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#ffffff;padding:32px 16px;color:#0A1628">
     <div style="max-width:600px;margin:0 auto">
@@ -149,12 +138,29 @@ const buildAutoReplyEmail = ({ name }) => {
   return { html, text };
 };
 
-app.get("/api/health", (_req, res) => res.json({ ok: true }));
+// ---------- Vercel handler ----------
+export default async function handler(req, res) {
+  // CORS — allow same-origin and (optionally) preview deploys
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-app.post("/api/contact", async (req, res) => {
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
+  if (req.method !== "POST") {
+    return res.status(405).json({ ok: false, message: "Method not allowed." });
+  }
+
   try {
-    const { name, company, email, industryType, challenge } = req.body || {};
+    // Vercel parses JSON bodies automatically when Content-Type is application/json,
+    // but we defensively handle both shapes.
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
+    const { name, company, email, industryType, challenge } = body;
 
+    // Validation
     if (!name || !company || !email) {
       return res.status(400).json({ ok: false, message: "Name, company and email are required." });
     }
@@ -165,12 +171,28 @@ app.post("/api/contact", async (req, res) => {
       return res.status(400).json({ ok: false, message: "Submission too large." });
     }
 
+    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+      console.error("[/api/contact] SMTP env vars are missing");
+      return res.status(500).json({
+        ok: false,
+        message: "Email service is not configured. Please write to contact@synapseconsulting.in directly.",
+      });
+    }
+
+    const transporter = nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT ? Number(SMTP_PORT) : 587,
+      secure: SMTP_SECURE === "true",
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+
     const payload = { name, company, email, industryType, challenge };
     const notif = buildNotificationEmail(payload);
     const reply = buildAutoReplyEmail(payload);
 
     const fromHeader = `"${SENDER_NAME}" <${SENDER_EMAIL}>`;
 
+    // 1) Notification to internal team
     const notifyPromise = transporter.sendMail({
       from: fromHeader,
       to: TARGET_EMAIL,
@@ -180,6 +202,7 @@ app.post("/api/contact", async (req, res) => {
       html: notif.html,
     });
 
+    // 2) Auto-reply to user — extra headers help avoid spam classification
     const autoReplyPromise = transporter.sendMail({
       from: fromHeader,
       to: `"${name}" <${email}>`,
@@ -198,7 +221,7 @@ app.post("/api/contact", async (req, res) => {
 
     await Promise.all([notifyPromise, autoReplyPromise]);
 
-    return res.json({ ok: true, message: "Message sent successfully." });
+    return res.status(200).json({ ok: true, message: "Message sent successfully." });
   } catch (err) {
     console.error("[/api/contact] error:", err);
     return res.status(500).json({
@@ -207,8 +230,4 @@ app.post("/api/contact", async (req, res) => {
         "We couldn't send your message right now. Please email us directly at contact@synapseconsulting.in.",
     });
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`[server] Synapse contact API listening on http://localhost:${PORT}`);
-});
+}

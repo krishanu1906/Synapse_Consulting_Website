@@ -1,6 +1,6 @@
 # Synapse Consulting — Corporate Website
 
-A production-ready React + TypeScript + Tailwind website for **Synapse Consulting**, a boutique Retail & CPG data and analytics consultancy headquartered in Bengaluru, India. Includes a working contact-form backend that sends a notification to your inbox and an automated thank-you reply to the user.
+Production-ready React + TypeScript + Tailwind website for **Synapse Consulting**, a boutique Retail & CPG data and analytics consultancy headquartered in Bengaluru, India. Includes a working contact-form backend that runs as a **Vercel serverless function** in production and as an Express server locally.
 
 Founded by **Jayanta Banerjee** and **Krishanu Banerjee**.
 
@@ -9,32 +9,36 @@ Founded by **Jayanta Banerjee** and **Krishanu Banerjee**.
 ## Tech Stack
 
 **Frontend:** Vite 5 · React 18 · TypeScript 5 · Tailwind CSS 3 · react-router-dom 6 (HashRouter)
-**Backend:** Node.js · Express · Nodemailer · dotenv
+**Backend:**
+- Production → Vercel serverless function (`api/contact.js`)
+- Local dev → Express server (`server/index.js`)
+- Both use Nodemailer over SMTP
+
 **Typography:** Helvetica Neue (Inter web fallback)
 
 ---
 
-## Quick Start
+## Quick Start (Local)
 
 ```bash
-# 1. Install all dependencies (frontend + backend)
+# 1. Install dependencies
 npm install
 
 # 2. Configure SMTP for the contact form
 cp .env.example .env
-# then open .env and fill in your SMTP credentials (see "Email setup" below)
+# fill in SMTP_HOST, SMTP_USER, SMTP_PASS, etc.
 
 # 3. Run frontend + backend together
 npm run dev:full
-# Vite:    http://localhost:5173  (opens automatically)
-# API:     http://localhost:3001  (proxied from /api/*)
+# Vite:    http://localhost:5173 (auto-opens)
+# API:     http://localhost:3001 (proxied from /api/*)
 
 # 4. Build for production
 npm run build
-# Static bundle is emitted to dist/
+# static bundle is emitted to dist/
 ```
 
-To run pieces individually:
+Run pieces individually:
 
 ```bash
 npm run dev       # frontend only (Vite, port 5173)
@@ -44,51 +48,135 @@ npm run preview   # preview the production build locally
 
 ---
 
-## Project Structure
+## Deploying to Vercel (Production)
+
+The project is preconfigured for Vercel. Push to GitHub, connect the repo to a Vercel project, and Vercel handles the rest — but **you must set the env vars below**, otherwise the contact form returns 500 / 404.
+
+### Step 1 — Set Environment Variables in Vercel
+
+Go to **Project → Settings → Environment Variables** and add these (apply to Production, Preview, Development):
+
+| Key             | Example value                                  |
+|-----------------|------------------------------------------------|
+| `SMTP_HOST`     | `smtp.gmail.com` / `smtp.zoho.in` / `smtp.resend.com` |
+| `SMTP_PORT`     | `465` (SSL) or `587` (STARTTLS)                |
+| `SMTP_SECURE`   | `true` for port 465, `false` for 587           |
+| `SMTP_USER`     | mailbox or API key username                    |
+| `SMTP_PASS`     | app password / API key secret                  |
+| `CONTACT_EMAIL` | `contact@synapseconsulting.in`                 |
+| `FROM_EMAIL`    | `contact@synapseconsulting.in` (must match an authenticated sender) |
+| `FROM_NAME`     | `Synapse Consulting`                           |
+
+After adding env vars, **redeploy** (Vercel does not pick up env-var changes without a redeploy).
+
+### Step 2 — Verify the route
+
+After deploy, hit `https://yourdomain.com/api/contact` with a POST. You should get a JSON response. If you get a `404`, your env vars or `vercel.json` are off — see Troubleshooting below.
+
+### Step 3 — Hostinger custom domain
+
+Point your Hostinger domain to Vercel by adding the Vercel-provided records to Hostinger DNS (Vercel shows them under Domains). Once propagated, `synapseconsulting.in` serves the site and `synapseconsulting.in/api/contact` runs the function.
+
+---
+
+## Fixing "Auto-reply Goes to Spam"
+
+Auto-reply emails landing in spam is almost always a **sender reputation / DNS authentication** problem, not a code problem. The fix has to happen at your DNS provider (Hostinger), not in the codebase.
+
+### A — Set up SPF, DKIM, DMARC on `synapseconsulting.in`
+
+These three DNS records prove to receiving mail servers that your sending mail provider is authorized to send on behalf of `@synapseconsulting.in`. Without them, Gmail/Outlook will flag almost every message.
+
+**SPF** — add a TXT record at the root (`@`):
+
+| If using…           | TXT value                                              |
+|---------------------|--------------------------------------------------------|
+| Google Workspace    | `v=spf1 include:_spf.google.com ~all`                  |
+| Zoho Mail           | `v=spf1 include:zoho.in ~all`                          |
+| SendGrid            | `v=spf1 include:sendgrid.net ~all`                     |
+| Resend              | `v=spf1 include:amazonses.com ~all`                    |
+| AWS SES             | `v=spf1 include:amazonses.com ~all`                    |
+
+If you already use the domain for normal mail (Hostinger inbox), combine them: `v=spf1 include:_spf.mail.hostinger.com include:sendgrid.net ~all`.
+
+**DKIM** — your sending provider gives you specific records. For each:
+
+- **Google Workspace:** Admin Console → Apps → Gmail → Authenticate email → generate DKIM, add the resulting TXT record.
+- **Zoho:** Domain Admin Console → Email Configuration → DKIM → publish records given.
+- **SendGrid / Resend:** dashboard hands you 2-3 CNAME records to add.
+
+**DMARC** — add a TXT record at `_dmarc.synapseconsulting.in`:
 
 ```
-synapse-consulting/
-├── public/
-│   ├── synapse-logo.png       ← Tightly cropped logo (transparent BG, primary)
-│   ├── synapse-logo.jpg       ← Cropped JPG fallback
-│   └── synapse-logo.svg       ← SVG fallback
-├── server/
-│   └── index.js               ← Express + Nodemailer email backend
-├── src/
-│   ├── components/
-│   │   ├── Navbar.tsx
-│   │   ├── HeroSection.tsx
-│   │   ├── ServicesSection.tsx          ← Retail Analytics Solutions
-│   │   ├── CPGServicesSection.tsx       ← CPG Analytics Solutions
-│   │   ├── ExpertiseSection.tsx         ← Retail industry expertise
-│   │   ├── CPGExpertiseSection.tsx      ← CPG category expertise
-│   │   ├── CaseStudiesSection.tsx       ← 5 verbatim case studies
-│   │   ├── ApproachSection.tsx          ← 4-step delivery approach
-│   │   ├── InsightsSection.tsx          ← Articles with reader modal
-│   │   ├── TeamSection.tsx              ← Founders + Why Synapse
-│   │   ├── ContactSection.tsx           ← Form → /api/contact
-│   │   ├── Footer.tsx
-│   │   └── SynapseLogo.tsx
-│   ├── pages/
-│   │   ├── Index.tsx                    ← Composes all sections
-│   │   └── NotFound.tsx
-│   ├── App.tsx
-│   ├── main.tsx
-│   └── index.css                        ← Brand tokens & utilities
-├── index.html
-├── tailwind.config.js                   ← Brand color palette
-├── vite.config.ts                       ← /api proxy for dev
-├── tsconfig.json
-├── package.json
-├── .env.example                         ← SMTP config template
-└── .gitignore
+v=DMARC1; p=none; rua=mailto:contact@synapseconsulting.in
 ```
+
+(`p=none` is the safe starting policy — start here, then move to `quarantine` after a couple of weeks of clean delivery.)
+
+### B — Use a Transactional Email Provider Instead of Gmail SMTP
+
+Free Gmail/Workspace SMTP works for personal mail but is unreliable for transactional sends (your auto-reply). Two recommended providers, both free for low volumes:
+
+**Resend (easiest, designed for transactional):**
+
+1. Sign up at https://resend.com (free tier: 100 emails/day, 3,000/month)
+2. Add and verify `synapseconsulting.in` (Resend gives you DNS records to paste into Hostinger — handles SPF + DKIM in one go)
+3. Generate an API key
+4. Set Vercel env vars:
+   - `SMTP_HOST=smtp.resend.com`
+   - `SMTP_PORT=465`
+   - `SMTP_SECURE=true`
+   - `SMTP_USER=resend`
+   - `SMTP_PASS=<your-api-key>`
+   - `FROM_EMAIL=contact@synapseconsulting.in`
+
+**SendGrid (alternative, also good):**
+
+1. Sign up, verify your domain (DNS records into Hostinger)
+2. `SMTP_HOST=smtp.sendgrid.net`, `SMTP_PORT=587`, `SMTP_SECURE=false`, `SMTP_USER=apikey`, `SMTP_PASS=<api-key>`
+
+### C — Built-in Code Protections (already done)
+
+The auto-reply function already includes these to reduce spam classification:
+
+- `Auto-Submitted: auto-replied` header
+- `Precedence: auto_reply` header
+- `List-Unsubscribe` and `List-Unsubscribe-Post` headers (signals legitimate bulk practices to Gmail)
+- `X-Auto-Response-Suppress: All` (prevents loops)
+- Plain conversational subject line ("Thanks for contacting Synapse Consulting") — no caps, no emoji, no spam-trigger words
+- HTML and plain-text alternatives both sent
+- `Reply-To` separate from `From` (uses `contact@synapseconsulting.in` for replies)
+
+These help — but **the DNS records in section A are the dominant factor**. With SPF + DKIM + DMARC + a verified domain on a transactional provider, deliverability should be 95%+.
+
+---
+
+## Troubleshooting
+
+**Production form returns 404**
+- The serverless function isn't being deployed. Confirm `api/contact.js` is in the repo and pushed to GitHub.
+- Check `vercel.json` exists and includes the rewrite for `/api/:path*`.
+- In Vercel project Settings → Functions, confirm `api/contact.js` is listed.
+
+**Production form returns 500**
+- Env vars are missing or wrong. Vercel → Project → Settings → Environment Variables. Make sure `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS` are set, then **redeploy**.
+- Check Vercel function logs (Project → Deployments → click deployment → Functions tab) for the actual error.
+
+**Local form returns 404**
+- The Vite proxy isn't reaching the Express server. Make sure you ran `npm run dev:full` (not just `npm run dev`).
+- Verify the Express server logs `[server] Synapse contact API listening on http://localhost:3001`.
+
+**Notification email arrives but auto-reply doesn't**
+- Check the user's spam folder first.
+- Most likely SPF/DKIM not set on `synapseconsulting.in`. See section above.
+
+**SMTP verify fails on startup**
+- Wrong port/secure combination — port 465 needs `SMTP_SECURE=true`; port 587 needs `SMTP_SECURE=false`.
+- For Gmail, you used your account password instead of an [App Password](https://myaccount.google.com/apppasswords).
 
 ---
 
 ## Brand Identity
-
-The Synapse brand palette is baked into `tailwind.config.js` and `src/index.css`:
 
 | Token            | Hex       | Usage                              |
 |------------------|-----------|------------------------------------|
@@ -97,113 +185,54 @@ The Synapse brand palette is baked into `tailwind.config.js` and `src/index.css`
 | `brand-cyan`     | `#33CCFF` | Accent — gradients, hover states   |
 | `brand-yellow`   | `#FFD43B` | Accent — badges, micro-highlights  |
 
-Use Tailwind utilities like `bg-brand-blue`, `text-brand-orange`, `border-brand-cyan`, etc.
+The palette is baked into `tailwind.config.js` and `src/index.css`. Use Tailwind utilities like `bg-brand-blue`, `text-brand-orange`, `border-brand-cyan`.
+
+### Logo
+
+Only one logo asset is used: `public/synapse-logo.jpg` — the official light-mode artwork. The `SynapseLogo` component handles two display modes:
+
+- `variant="dark"` → image rendered inline (used on white surfaces, e.g. scrolled navbar)
+- `variant="light"` → image wrapped in a clean white rounded card (used on dark surfaces — hero, footer, mobile drawer — so the brand colors keep their intended contrast)
+
+To replace the logo, swap `public/synapse-logo.jpg` and rebuild.
 
 ---
 
-## Email Setup (Contact Form)
+## Project Structure
 
-The contact form POSTs to `/api/contact` (proxied to the Node backend in dev, same-origin in prod). The backend sends two emails on each submission:
-
-1. **Notification** → `contact@synapseconsulting.in` with all form fields. `Reply-To` is set to the user, so hitting reply goes straight to them.
-2. **Auto-reply** → the user, thanking them and confirming the team will respond within one business day.
-
-### 1. Copy the env template
-
-```bash
-cp .env.example .env
 ```
-
-### 2. Fill in SMTP credentials in `.env`
-
-| Provider          | `SMTP_HOST`                            | `SMTP_PORT` | `SMTP_SECURE` | `SMTP_USER`         |
-|-------------------|----------------------------------------|-------------|---------------|---------------------|
-| Google Workspace  | `smtp.gmail.com`                       | `465`       | `true`        | mailbox + app pwd   |
-| Zoho Mail         | `smtp.zoho.in`                         | `465`       | `true`        | mailbox + app pwd   |
-| SendGrid          | `smtp.sendgrid.net`                    | `587`       | `false`       | `apikey`            |
-| AWS SES           | `email-smtp.<region>.amazonaws.com`    | `587`       | `false`       | SMTP IAM creds      |
-
-> **Google Workspace tip:** generate an [App Password](https://myaccount.google.com/apppasswords) — your normal password will not work over SMTP.
-> **Zoho tip:** generate an app-specific password under *Mail Accounts → Security*.
-
-### 3. Verify it works
-
-```bash
-npm run dev:full
+synapse-consulting/
+├── api/
+│   └── contact.js              ← Vercel serverless function (PROD)
+├── public/
+│   └── synapse-logo.jpg        ← Single logo asset
+├── server/
+│   └── index.js                ← Express backend (LOCAL DEV ONLY)
+├── src/
+│   ├── components/             ← All sections + Navbar + Footer + Logo
+│   ├── pages/                  ← Index.tsx + NotFound.tsx
+│   ├── App.tsx · main.tsx · index.css
+├── index.html
+├── tailwind.config.js
+├── vite.config.ts              ← /api proxy for dev
+├── vercel.json                 ← Serverless routing config for Vercel
+├── .env.example                ← SMTP config template
+├── package.json
+└── README.md
 ```
-
-Open `http://localhost:5173`, fill in the contact form, hit Send. You should see:
-- "Sending..." → success state with the user's email confirmed
-- A notification in `contact@synapseconsulting.in`
-- An auto-reply in the email entered in the form
-
-If the backend can't reach your SMTP server, the form shows an error message and falls back to a `mailto:` direct-email suggestion.
 
 ---
 
 ## Key Features Delivered
 
-- **Cleanly integrated logo** — tightly cropped PNG with transparent background; sits flush on any backdrop (white navbar, dark footer, dark hero) with no white box around it
-- **Working contact form with email** — Express + Nodemailer backend; team notification + user auto-reply on every submission
+- **Working contact form** with team notification + user auto-reply, runs as Vercel serverless in prod and Express locally
+- **Single logo asset** (JPG only) used consistently — wrapped in a clean white card on dark surfaces for design consistency
+- **Spam-resistant auto-reply** with proper email headers (`Auto-Submitted`, `List-Unsubscribe`, `Precedence`, etc.)
 - **Dual practice areas** — separate Services & Expertise sections for Retail and CPG
 - **5 verbatim case studies** — Grocery price/assortment, Luxury fashion segmentation, Fashion clienteling, CPG GTM transformation, CPG salesforce productivity
-- **Working article modal** — Insights section opens full reader with ESC-to-close & body-scroll lock
-- **Contact form with Industry Type select** — Retail / CPG / Others
+- **Working article modal** in Insights section — ESC-to-close & body-scroll lock
 - **Founder bios** — full Jayanta Banerjee bio + Krishanu Banerjee tech-focused profile
-- **Why Synapse stat tile** — 100% Domain-Focused, 10-week avg. time to first value, 6+ international clients, Bengaluru HQ
-- **Dynamic copyright year** via `new Date().getFullYear()`
-- **Brand contact details** integrated — `contact@synapseconsulting.in`, Bangalore, Karnataka, India
 - **Mobile-responsive** — fully responsive layout with mobile drawer navigation
-- **Hash-based routing** — works on any static host without server config
-
----
-
-## Production Deployment
-
-The frontend (static bundle in `dist/`) and the backend (Node service) deploy separately, but the frontend expects `/api/contact` to reach the backend.
-
-### Option A — Single host (recommended)
-
-Run both behind one domain. Common setup on a VPS:
-
-```bash
-# Build the frontend
-npm run build
-
-# Run the backend with pm2
-pm2 start server/index.js --name synapse-api
-
-# nginx routes:
-#   /api/*  → http://localhost:3001
-#   /*      → /var/www/synapse/dist (your built frontend)
-```
-
-### Option B — Separate hosts
-
-- **Frontend:** Netlify / Vercel / Cloudflare Pages / S3 + CloudFront — point at `dist/`
-- **Backend:** Render / Railway / Fly.io / EC2 — start command `npm run server`, set `SMTP_*` and `CONTACT_EMAIL` as environment variables
-
-If hosts differ, update the `fetch("/api/contact"…)` call in `ContactSection.tsx` to the backend's absolute URL, and configure CORS on the backend to allow the frontend origin.
-
-### Option C — Serverless
-
-Port `server/index.js` to a single function (e.g. `api/contact.js` on Vercel/Netlify). The handler body is portable — only the Express boilerplate goes away.
-
----
-
-## Customization Notes
-
-- **Replace logo:** swap `public/synapse-logo.png` (and the `.jpg` fallback). The `SynapseLogo` component reads from `/synapse-logo.png`.
-- **Update copy:** all section copy lives inside its respective component file under `src/components/`.
-- **Add real article content:** in `src/components/InsightsSection.tsx`, replace the `body` HTML on each article object with the long-form content.
-- **Change recipient email:** edit `CONTACT_EMAIL` in `.env`.
-- **Customize email templates:** edit the HTML in `buildNotificationEmail` / `buildAutoReplyEmail` inside `server/index.js`.
-
----
-
-## Browser Support
-
-Modern evergreen browsers. The build targets ES2020+ via Vite defaults.
 
 ---
 

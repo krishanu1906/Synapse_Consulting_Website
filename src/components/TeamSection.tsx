@@ -17,7 +17,7 @@ const team = [
     name: "Krishanu Banerjee",
     role: "Co-Founder & Technology Partner",
     designation: "AI/ML · Cloud Architecture · Data Engineering",
-    bio: "Krishanu Banerjee leads the technology practice at Synapse, bringing hands-on competencies across AI/ML system design, cloud-native architecture, and modern data engineering. His expertise spans large language models, distributed data platforms, and production-grade machine learning — translating cutting-edge technology into deployable analytics solutions for Retail and CPG clients. He partners closely with engineering and data science teams to ensure every Synapse engagement is built on robust, scalable, and future-ready foundations.",
+    bio: "Krishanu Banerjee leads the technology practice at Synapse, bringing hands-on competencies across AI/ML system design, cloud-native architecture, and modern data engineering. His expertise spans large language model integration, anomaly detection pipelines, distributed data platforms, and production-grade machine learning — translating cutting-edge technology into deployable analytics solutions for Retail and CPG clients. He partners closely with engineering and data science teams to ensure every Synapse engagement is built on robust, scalable, and future-ready foundations.",
     initials: "KB",
     accent: "orange",
   },
