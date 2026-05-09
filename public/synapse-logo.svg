@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" fill="none" aria-label="Synapse Consulting">
+  <defs>
+    <style>
+      .blue { stroke: #007BFF; }
+      .blueDot { fill: #007BFF; }
+      .yellowDot { fill: #FFD43B; }
+      .orangeDot { fill: #FF6B00; }
+      .cyanDot { fill: #33CCFF; }
+    </style>
+  </defs>
+
+  <!-- Hexagonal connection network -->
+  <g class="blue" stroke-width="2" stroke-linecap="round" opacity="0.85" fill="none">
+    <!-- outer hexagon connections -->
+    <line x1="120" y1="30"  x2="200" y2="76" />
+    <line x1="200" y1="76"  x2="200" y2="164" />
+    <line x1="200" y1="164" x2="120" y2="210" />
+    <line x1="120" y1="210" x2="40"  y2="164" />
+    <line x1="40"  y1="164" x2="40"  y2="76" />
+    <line x1="40"  y1="76"  x2="120" y2="30" />
+
+    <!-- inner cross-connections -->
+    <line x1="120" y1="30"  x2="120" y2="120" />
+    <line x1="200" y1="76"  x2="120" y2="120" />
+    <line x1="200" y1="164" x2="120" y2="120" />
+    <line x1="120" y1="210" x2="120" y2="120" />
+    <line x1="40"  y1="164" x2="120" y2="120" />
+    <line x1="40"  y1="76"  x2="120" y2="120" />
+
+    <!-- intermediate nodes -->
+    <line x1="80"  y1="53"  x2="160" y2="53" />
+    <line x1="160" y1="187" x2="80"  y2="187" />
+    <line x1="80"  y1="53"  x2="40"  y2="120" />
+    <line x1="160" y1="53"  x2="200" y2="120" />
+    <line x1="40"  y1="120" x2="80"  y2="187" />
+    <line x1="200" y1="120" x2="160" y2="187" />
+  </g>
+
+  <!-- Stylized "S" letter -->
+  <g>
+    <!-- Orange top half of S -->
+    <path d="M 145 65
+             C 145 55, 130 50, 115 50
+             C 95  50, 80  60, 80  78
+             C 80  92, 92  100, 110 102
+             L 122 104
+             C 130 105, 134 109, 134 113
+             L 100 113
+             C 100 100, 92  96, 82  93
+             C 88  105, 105 113, 122 113
+             L 134 113
+             C 138 113, 142 110, 145 105 Z"
+          fill="#FF6B00"/>
+
+    <!-- Blue bottom half of S -->
+    <path d="M 95 130
+             C 95 142, 110 150, 128 150
+             C 148 150, 162 140, 162 122
+             C 162 108, 150 100, 132 98
+             L 120 96
+             C 112 95, 108 91, 108 87
+             L 142 87
+             C 142 100, 150 104, 160 107
+             C 154 95, 137 87, 120 87
+             L 108 87
+             C 104 87, 100 90, 95 95 Z"
+          fill="#007BFF" transform="translate(0, 22)"/>
+
+    <!-- Solid simplified S as fallback overlay (cleaner readability) -->
+    <text x="120" y="148" text-anchor="middle"
+          font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+          font-weight="900" font-size="120"
+          fill="url(#sGrad)">S</text>
+    <defs>
+      <linearGradient id="sGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%"  stop-color="#FF6B00"/>
+        <stop offset="50%" stop-color="#FF6B00"/>
+        <stop offset="50%" stop-color="#007BFF"/>
+        <stop offset="100%" stop-color="#007BFF"/>
+      </linearGradient>
+    </defs>
+  </g>
+
+  <!-- Network nodes (drawn last so they sit on top of connections) -->
+  <g>
+    <!-- Outer hex vertices -->
+    <circle cx="120" cy="30"  r="7"   class="yellowDot"/>
+    <circle cx="200" cy="76"  r="7"   class="orangeDot"/>
+    <circle cx="200" cy="164" r="7"   class="orangeDot"/>
+    <circle cx="120" cy="210" r="6"   class="orangeDot"/>
+    <circle cx="40"  cy="164" r="7"   class="blueDot"/>
+    <circle cx="40"  cy="76"  r="6"   class="yellowDot"/>
+
+    <!-- Mid-edge nodes -->
+    <circle cx="80"  cy="53"  r="5"   class="yellowDot"/>
+    <circle cx="160" cy="53"  r="5"   class="orangeDot"/>
+    <circle cx="160" cy="187" r="5"   class="yellowDot"/>
+    <circle cx="80"  cy="187" r="5"   class="yellowDot"/>
+    <circle cx="40"  cy="120" r="5"   class="cyanDot"/>
+    <circle cx="200" cy="120" r="6"   class="orangeDot"/>
+
+    <!-- Tiny accent dots -->
+    <circle cx="100" cy="170" r="3"   class="cyanDot"/>
+    <circle cx="100" cy="40"  r="3"   class="blueDot"/>
+    <circle cx="160" cy="125" r="3"   class="blueDot"/>
+    <circle cx="65"  cy="135" r="3"   class="blueDot"/>
+  </g>
+</svg>
