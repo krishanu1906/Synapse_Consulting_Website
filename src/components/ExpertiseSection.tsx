@@ -80,7 +80,6 @@ const ExpertiseSection: React.FC = () => {
                     : "bg-white hover:bg-brand-cloud text-charcoal"
                 }`}
               >
-                <span className="text-2xl">{ind.icon}</span>
                 <span
                   className={`font-display font-semibold text-base ${
                     active === i ? "text-white" : "text-charcoal group-hover:text-brand-blue"
@@ -107,7 +106,6 @@ const ExpertiseSection: React.FC = () => {
 
           <div className="lg:col-span-3 p-10 flex flex-col justify-center bg-gradient-to-br from-white to-brand-cloud">
             <div key={active} className="animate-fade-up">
-              <div className="text-5xl mb-4">{industries[active].icon}</div>
               <h3 className="font-display text-2xl font-bold text-charcoal mb-4">
                 {industries[active].name}
               </h3>

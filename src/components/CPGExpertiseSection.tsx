@@ -101,7 +101,6 @@ const CPGExpertiseSection: React.FC = () => {
                     : "bg-white hover:bg-brand-cloud text-charcoal"
                 }`}
               >
-                <span className="text-2xl">{ind.icon}</span>
                 <span
                   className={`font-display font-semibold text-base ${
                     active === i ? "text-white" : "text-charcoal group-hover:text-brand-orange"
@@ -128,7 +127,6 @@ const CPGExpertiseSection: React.FC = () => {
 
           <div className="lg:col-span-3 p-10 flex flex-col justify-center bg-gradient-to-br from-white to-brand-mist">
             <div key={active} className="animate-fade-up">
-              <div className="text-5xl mb-4">{cpgIndustries[active].icon}</div>
               <h3 className="font-display text-2xl font-bold text-charcoal mb-3">
                 {cpgIndustries[active].name}
               </h3>

@@ -648,9 +648,6 @@ const ImpactAccordion: React.FC<{ items: ImpactItem[] }> = ({ items }) => {
                 expandable ? "hover:bg-white/60 cursor-pointer" : "cursor-default"
               }`}
             >
-              <span className="text-2xl flex-shrink-0" aria-hidden>
-                {im.emoji}
-              </span>
               <p className="font-display font-bold text-charcoal text-base flex-1">
                 {im.title}
               </p>
@@ -682,7 +679,7 @@ const ImpactAccordion: React.FC<{ items: ImpactItem[] }> = ({ items }) => {
                 }`}
               >
                 <div className="overflow-hidden">
-                  <div className="px-4 pb-4 pl-[3.5rem]">
+                  <div className="px-4 pb-4">
                     {im.body && (
                       <p className="font-body text-charcoal-soft text-sm leading-relaxed mb-1.5">
                         {im.body}
