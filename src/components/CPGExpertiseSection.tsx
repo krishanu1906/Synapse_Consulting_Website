@@ -5,7 +5,7 @@ import React, { useState } from "react";
 const cpgIndustries = [
   {
     name: "Food & Beverages",
-    icon: "🍽️",
+    icon: "🍿🥤",
     promise:
       "Category and SKU level analytics to optimize inventory and drive revenue growth",
     usecases: [

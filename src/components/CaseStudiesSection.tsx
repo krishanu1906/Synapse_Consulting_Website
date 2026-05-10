@@ -576,41 +576,7 @@ const CaseStudiesSection: React.FC = () => {
               </SubBlock>
 
               <SubBlock label="Impact" last>
-                <div className="space-y-5 mt-2">
-                  {c.impact.map((im, i) => (
-                    <div
-                      key={i}
-                      className="flex gap-4 p-4 bg-brand-cloud rounded-lg border-l-4 border-brand-orange"
-                    >
-                      <span className="text-2xl flex-shrink-0" aria-hidden>
-                        {im.emoji}
-                      </span>
-                      <div>
-                        <p className="font-display font-bold text-charcoal text-base mb-1.5">
-                          {im.title}
-                        </p>
-                        {im.body && (
-                          <p className="font-body text-charcoal-soft text-sm leading-relaxed mb-1.5">
-                            {im.body}
-                          </p>
-                        )}
-                        {im.bullets && (
-                          <ul className="space-y-1">
-                            {im.bullets.map((b, j) => (
-                              <li
-                                key={j}
-                                className="flex gap-2 text-charcoal-soft text-sm leading-relaxed"
-                              >
-                                <span className="text-brand-orange flex-shrink-0">›</span>
-                                <span>{b}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ImpactAccordion items={c.impact} />
               </SubBlock>
             </div>
 
@@ -633,6 +599,116 @@ const CaseStudiesSection: React.FC = () => {
         </div>
       </div>
     </section>
+  );
+};
+
+/**
+ * ImpactAccordion — collapsible Impact items.
+ * Each item shows only the emoji + title by default; clicking expands to reveal
+ * the body and bullets. Multiple items can be open at once.
+ *
+ * The parent (`CaseStudiesSection`) wraps the case-detail in a `<div key={activeIdx}>`,
+ * so this component remounts automatically when the user switches case studies — meaning
+ * its internal `openSet` state naturally resets between cases without needing an effect.
+ */
+const ImpactAccordion: React.FC<{ items: ImpactItem[] }> = ({ items }) => {
+  const [openSet, setOpenSet] = useState<Set<number>>(new Set());
+
+  const toggle = (i: number) => {
+    setOpenSet((prev) => {
+      const next = new Set(prev);
+      if (next.has(i)) next.delete(i);
+      else next.add(i);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-3 mt-2">
+      {items.map((im, i) => {
+        const isOpen = openSet.has(i);
+        const hasBody = Boolean(im.body);
+        const hasBullets = Boolean(im.bullets && im.bullets.length > 0);
+        const expandable = hasBody || hasBullets;
+
+        return (
+          <div
+            key={i}
+            className={`bg-brand-cloud rounded-lg border-l-4 border-brand-orange overflow-hidden transition-shadow duration-200 ${
+              isOpen ? "shadow-card" : ""
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => expandable && toggle(i)}
+              disabled={!expandable}
+              aria-expanded={isOpen}
+              aria-controls={`impact-panel-${i}`}
+              className={`w-full flex items-center gap-4 p-4 text-left transition-colors duration-200 ${
+                expandable ? "hover:bg-white/60 cursor-pointer" : "cursor-default"
+              }`}
+            >
+              <span className="text-2xl flex-shrink-0" aria-hidden>
+                {im.emoji}
+              </span>
+              <p className="font-display font-bold text-charcoal text-base flex-1">
+                {im.title}
+              </p>
+              {expandable && (
+                <span
+                  className={`flex-shrink-0 w-6 h-6 rounded-full bg-white border border-border flex items-center justify-center transition-transform duration-300 ${
+                    isOpen ? "rotate-180 bg-brand-orange border-brand-orange" : ""
+                  }`}
+                  aria-hidden
+                >
+                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                    <path
+                      d="M3 4.5L6 7.5L9 4.5"
+                      stroke={isOpen ? "white" : "#FF6B00"}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              )}
+            </button>
+
+            {expandable && (
+              <div
+                id={`impact-panel-${i}`}
+                className={`grid transition-all duration-300 ease-out ${
+                  isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden">
+                  <div className="px-4 pb-4 pl-[3.5rem]">
+                    {im.body && (
+                      <p className="font-body text-charcoal-soft text-sm leading-relaxed mb-1.5">
+                        {im.body}
+                      </p>
+                    )}
+                    {im.bullets && (
+                      <ul className="space-y-1">
+                        {im.bullets.map((b, j) => (
+                          <li
+                            key={j}
+                            className="flex gap-2 text-charcoal-soft text-sm leading-relaxed"
+                          >
+                            <span className="text-brand-orange flex-shrink-0">›</span>
+                            <span>{b}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 };
 
